@@ -1,0 +1,15 @@
+# Ignore dependencies
+**/node_modules/
+
+# Ignore environment variables (Important for your JWT secret!)
+**/.env
+
+# Ignore build outputs
+**/dist/
+**/.angular/
+
+# Mac specific
+.DS_Store
+
+# VS Code specific
+.vscode/

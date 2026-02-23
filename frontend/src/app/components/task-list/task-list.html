@@ -1,0 +1,22 @@
+<p>task-list works!</p>
+<input #taskInput type="text" placeholder="Enter new task...">
+<button (click)="handleAddTask(taskInput)">Add Task</button>
+
+  <hr>
+<ul>
+  @for (task of taskService.tasks(); track task._id) {
+    <li style="display: flex; gap: 10px; margin-bottom: 5px;">
+      <input type="checkbox" 
+             [checked]="task.status === 'Done'" 
+             (change)="taskService.toggleStatus(task)">
+      
+      <span [style.textDecoration]="task.status === 'Done' ? 'line-through' : 'none'">
+        {{ task.title }}
+      </span>
+
+      <button (click)="taskService.deleteTask(task._id)" style="color: red;">Delete</button>
+    </li>
+  } @empty {
+    <p>No tasks yet. Create one!</p>
+  }
+</ul>
