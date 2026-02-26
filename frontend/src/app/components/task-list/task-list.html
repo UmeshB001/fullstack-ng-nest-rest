@@ -1,22 +1,102 @@
-<p>task-list works!</p>
-<input #taskInput type="text" placeholder="Enter new task...">
-<button (click)="handleAddTask(taskInput)">Add Task</button>
-
-  <hr>
-<ul>
-  @for (task of taskService.tasks(); track task._id) {
-    <li style="display: flex; gap: 10px; margin-bottom: 5px;">
-      <input type="checkbox" 
-             [checked]="task.status === 'Done'" 
-             (change)="taskService.toggleStatus(task)">
-      
-      <span [style.textDecoration]="task.status === 'Done' ? 'line-through' : 'none'">
-        {{ task.title }}
+<div class="min-h-screen bg-slate-950 p-4 md:p-8 text-slate-200">
+  <div class="max-w-4xl mx-auto mb-8 flex justify-between items-center">
+    <div>
+      <h1 class="text-3xl font-bold text-white tracking-tight">Task Vault</h1>
+      <p class="text-slate-400 text-sm">Manage your enterprise objectives</p>
+    </div>
+    <div class="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-full border border-white/10">
+      <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+      <span class="text-xs font-medium uppercase tracking-wider text-slate-300">
+        {{ authService.userRole() }} Mode
       </span>
+    </div>
+  </div>
 
-      <button (click)="taskService.deleteTask(task._id)" style="color: red;">Delete</button>
-    </li>
-  } @empty {
-    <p>No tasks yet. Create one!</p>
-  }
-</ul>
+  <div class="max-w-4xl mx-auto space-y-6">
+    @if (authService.userRole() === 'admin') {
+      <div
+        class="bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-2xl shadow-xl transition-all hover:border-indigo-500/30"
+      >
+        <h3 class="text-sm font-semibold text-indigo-400 uppercase tracking-widest mb-4">
+          Create New Task
+        </h3>
+        <div class="flex flex-col sm:flex-row gap-3">
+          <input
+            #taskInput
+            type="text"
+            placeholder="What needs to be done?"
+            class="flex-1 bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+            (keyup.enter)="handleAddTask(taskInput)"
+          />
+          <button
+            (click)="handleAddTask(taskInput)"
+            class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-lg shadow-indigo-600/20 active:scale-95"
+          >
+            Add Task
+          </button>
+        </div>
+      </div>
+    }
+
+    <div
+      class="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl shadow-xl overflow-hidden"
+    >
+      <div class="p-4 border-b border-white/5 bg-white/5 flex justify-between items-center">
+        <span class="text-xs font-bold uppercase tracking-widest text-slate-400"
+          >Current Tasks</span
+        >
+        <span class="text-xs text-slate-500">{{ taskService.tasks().length }} total</span>
+      </div>
+
+      <ul class="divide-y divide-white/5">
+        @for (task of taskService.tasks(); track task._id) {
+          <li
+            class="p-4 flex items-center justify-between group hover:bg-white/[0.02] transition-colors"
+          >
+            <div class="flex items-center gap-4">
+              <input
+                type="checkbox"
+                [checked]="task.status === 'Done'"
+                (change)="taskService.toggleStatus(task)"
+                class="w-5 h-5 rounded border-white/10 bg-slate-800 text-indigo-600 focus:ring-indigo-500/50 cursor-pointer"
+              />
+
+              <span
+                [class.line-through]="task.status === 'Done'"
+                [class.text-slate-500]="task.status === 'Done'"
+                class="text-sm font-medium transition-all"
+              >
+                {{ task.title }}
+              </span>
+            </div>
+
+            <button
+              (click)="taskService.deleteTask(task._id)"
+              class="opacity-0 group-hover:opacity-100 focus:opacity-100 p-2 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                />
+              </svg>
+            </button>
+          </li>
+        } @empty {
+          <li class="p-12 text-center">
+            <div class="text-slate-600 mb-2">📭</div>
+            <p class="text-slate-500 text-sm italic">No tasks yet. Enjoy your free time!</p>
+          </li>
+        }
+      </ul>
+    </div>
+  </div>
+</div>

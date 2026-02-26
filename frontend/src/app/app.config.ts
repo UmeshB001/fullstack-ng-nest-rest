@@ -7,8 +7,8 @@ import { authInterceptor } from './interceptors/auth.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideHttpClient(withInterceptors([authInterceptor])), // <--- Register it here!
-    provideBrowserGlobalErrorListeners(),
-    provideRouter(routes)
-  ]
+    provideHttpClient(withInterceptors([authInterceptor])), // <--- Register the auth interceptor for attaching JWT tokens to requests
+    provideBrowserGlobalErrorListeners(), // <--- Optional: Global error handling for better debugging
+    provideRouter(routes), // <--- Register the router with our routes
+  ],
 };
