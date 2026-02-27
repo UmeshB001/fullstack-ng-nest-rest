@@ -1,5 +1,12 @@
-import { HttpClient } from '@angular/common/http';
-import { inject, Injectable, signal } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { computed, inject, Injectable, signal } from '@angular/core';
+import { tap } from 'rxjs/internal/operators/tap';
+
+export enum TaskPriority {
+  LOW = 0,
+  MEDIUM = 1,
+  HIGH = 2,
+}
 
 // CRITICAL: This service is responsible for all interactions with the backend API related to tasks. It uses Angular's HttpClient to make HTTP requests and signals to manage the state of tasks in the UI.
 @Injectable({
@@ -10,13 +17,32 @@ export class TaskService {
   private apiUrl = 'http://localhost:3000/tasks'; // Base URL for task-related API endpoints
 
   tasks = signal<any[]>([]); // Signal to hold the list of tasks, allowing components to reactively update when tasks change
+  isLoading = signal<boolean>(false); // Signal to indicate loading state for better UX
+
+  // automaticall keep track of completed tasks count using a computed signal
+  completedTasksCount = computed<number>(
+    () => this.tasks().filter((t) => t.status === 'Done').length,
+  );
+
+  // Derives a percentage for a progress bar
+  completionPercentage = computed<number>(() => {
+    const total = this.tasks().length;
+    return total === 0 ? 0 : (this.completedTasksCount() / total) * 100;
+  });
 
   getTasks() {
-    // This method fetches the list of tasks from the backend API and updates the tasks signal with the response data. Components that subscribe to this signal will automatically update their UI when the tasks change.
-    // subscribe() is necessary to actually execute the HTTP request and handle the response. Without subscribe(), the Observable returned by http.get() would not be activated, and the API call would not be made.
-    this.http.get<any[]>(this.apiUrl).subscribe((data) => {
-      this.tasks.set(data); // Update the tasks signal with the fetched data, triggering UI updates in any component that uses this signal
-    });
+    this.isLoading.set(true); // Set loading state to true before making the API call
+    this.http.get<any[]>(this.apiUrl).subscribe({
+      next: (data) => {
+        this.tasks.set(data);
+      }, // Update the tasks signal with the response data
+      error: (err) => {
+        console.error('Error fetching tasks:', err);
+      },
+      complete: () => {
+        this.isLoading.set(false);
+      }, // Reset loading state after the API call completes
+    }); // Subscribe to the observable to trigger the HTTP request and update the tasks signal with the response
   }
 
   addTask(task: string) {
@@ -41,9 +67,45 @@ export class TaskService {
   toggleStatus(task: any) {
     // Toggle the status between 'Done' and 'Pending'
     const newStatus = task.status === 'Done' ? 'Pending' : 'Done';
-    // Update the task status in the backend
-    this.http.patch(`${this.apiUrl}/${task._id}`, { status: newStatus }).subscribe(() => {
-      this.getTasks(); // Refresh the tasks list after toggling the status
+
+    // 1. Update UI immediately (Optimistic)
+    this.tasks.update((currentTasks) =>
+      currentTasks.map((t) => (t._id === task._id ? { ...t, status: newStatus } : t)),
+    );
+    // 2. Sync with Backend: Send a PATCH request to update the task status in the backend. The backend will handle the logic to update the task in the database and return the updated task data if needed.
+    this.http.patch(`${this.apiUrl}/${task._id}`, { status: newStatus }).subscribe({
+      error: (err) => {
+        console.error('Status update failed, refreshing list...', err);
+        this.getTasks(); // If server fails, revert by fetching original data
+      },
     });
+  }
+
+  searchTasks(term: string) {
+    // If search is empty, we trigger getTasks and return an empty observable
+    // because getTasks already handles the subscription/signal update internally.
+    if (!term.trim()) {
+      this.getTasks();
+      return []; // Return empty array to satisfy switchMap
+    }
+
+    const params = new HttpParams().set('q', term);
+
+    // We return the Observable here so switchMap in the component can manage it
+    return this.http.get<any[]>(`${this.apiUrl}/search`, { params }).pipe(
+      tap((results) => {
+        this.tasks.set(results); // Update the signal reactively
+      }),
+    );
+  }
+
+  // Implement for mergemap parrallel search if needed in the future
+  getTaskDetails(id: string) {
+    return this.http.get(`${this.apiUrl}/${id}`);
+  }
+
+  // Implementation for concatMap (Sequential)
+  updatePriority(id: string, priority: TaskPriority) {
+    return this.http.patch(`${this.apiUrl}/${id}`, { priority });
   }
 }

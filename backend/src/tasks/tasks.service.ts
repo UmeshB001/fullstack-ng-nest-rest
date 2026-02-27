@@ -23,8 +23,16 @@ export class TasksService {
     return `This action returns a #${id} task`;
   }
 
+  search(query: string) {
+    return this.taskModel
+      .find({ title: { $regex: query, $options: 'i' } }) // Case-insensitive search
+      .exec();
+  }
+
   async update(id: string, updateTaskDto: UpdateTaskDto) {
-    return await this.taskModel.findByIdAndUpdate(id, updateTaskDto, { new: true }).exec();
+    return await this.taskModel
+      .findByIdAndUpdate(id, updateTaskDto, { new: true })
+      .exec();
   }
 
   async remove(id: string) {
